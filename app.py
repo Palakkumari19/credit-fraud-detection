@@ -31,54 +31,14 @@ def load_model():
 
 @st.cache_data
 def load_data():
-    import os
-    import json
     from sklearn.preprocessing import RobustScaler
     from sklearn.model_selection import train_test_split
 
-    csv_path = 'data/raw/creditcard.csv'
-
-    if not os.path.exists(csv_path):
-        os.makedirs('data/raw', exist_ok=True)
-
-        # Write kaggle.json
-        kaggle_dir = os.path.expanduser('~/.kaggle')
-        os.makedirs(kaggle_dir, exist_ok=True)
-        with open(f'{kaggle_dir}/kaggle.json', 'w') as f:
-            json.dump({
-                "username": st.secrets["KAGGLE_USERNAME"],
-                "key": st.secrets["KAGGLE_KEY"]
-            }, f)
-        os.chmod(f'{kaggle_dir}/kaggle.json', 0o600)
-
-        # Use kaggle Python API directly
-        from kaggle.api.kaggle_api_extended import KaggleApiExtended
-        api = KaggleApiExtended()
-        api.authenticate()
-        api.dataset_download_files(
-            'mlg-ulb/creditcardfraud',
-            path='data/raw/',
-            unzip=True
-        )
-
-        if not os.path.exists(csv_path):
-            raise FileNotFoundError("Download failed — CSV still not found")
-
-    df = pd.read_csv(csv_path)
-
-    scaler = RobustScaler()
-    df['Amount_scaled'] = scaler.fit_transform(df[['Amount']])
-    df['Time_scaled']   = scaler.fit_transform(df[['Time']])
-    df = df.drop(['Time', 'Amount'], axis=1)
-
-    X = df.drop('Class', axis=1)
-    y = df['Class']
-
-    _, X_test, _, y_test = train_test_split(
-        X, y, test_size=0.2,
-        random_state=42, stratify=y)
-
-    return X_test, y_test.values, X.columns.tolist()
+    df = pd.read_csv('data/processed/test_data.csv')
+    y_test = df['Class'].values
+    X_test = df.drop('Class', axis=1)
+    feature_names = X_test.columns.tolist()
+    return X_test, y_test, feature_names
 
 model, config  = load_model()
 threshold      = config['threshold']

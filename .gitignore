@@ -10,4 +10,4 @@ mlruns/
 .ipynb_checkpoints/
 
 # Allow data folder but ignore raw csv
-data/raw/data/
+data/

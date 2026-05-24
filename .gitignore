@@ -3,9 +3,11 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
-data/
 *.csv
 *.pkl
 *.joblib
 mlruns/
 .ipynb_checkpoints/
+
+# Allow data folder but ignore raw csv
+data/raw/

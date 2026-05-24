@@ -32,6 +32,7 @@ def load_model():
 @st.cache_data
 def load_data():
     import os
+    import subprocess
     from sklearn.preprocessing import RobustScaler
     from sklearn.model_selection import train_test_split
 
@@ -39,11 +40,38 @@ def load_data():
 
     if not os.path.exists(csv_path):
         os.makedirs('data/raw', exist_ok=True)
-        os.system('pip install kaggle -q')
-        os.environ['KAGGLE_USERNAME'] = st.secrets["KAGGLE_USERNAME"]
-        os.environ['KAGGLE_KEY']      = st.secrets["KAGGLE_KEY"]
-        os.system('kaggle datasets download -d mlg-ulb/creditcardfraud '
-                  '--unzip -p data/raw/')
+        
+        # Install kaggle
+        subprocess.run(['pip', 'install', 'kaggle', '-q'], check=True)
+        
+        # Write kaggle.json credentials file
+        kaggle_dir = os.path.expanduser('~/.kaggle')
+        os.makedirs(kaggle_dir, exist_ok=True)
+        
+        import json
+        credentials = {
+            "username": st.secrets["KAGGLE_USERNAME"],
+            "key": st.secrets["KAGGLE_KEY"]
+        }
+        with open(f'{kaggle_dir}/kaggle.json', 'w') as f:
+            json.dump(credentials, f)
+        os.chmod(f'{kaggle_dir}/kaggle.json', 0o600)
+        
+        # Download dataset
+        result = subprocess.run([
+            'python', '-m', 'kaggle',
+            'datasets', 'download',
+            '-d', 'mlg-ulb/creditcardfraud',
+            '--unzip', '-p', 'data/raw/'
+        ], capture_output=True, text=True)
+        
+        # Log output for debugging
+        st.write("Download stdout:", result.stdout)
+        st.write("Download stderr:", result.stderr)
+        
+        if not os.path.exists(csv_path):
+            st.error(f"Download failed. stdout: {result.stdout}, stderr: {result.stderr}")
+            raise FileNotFoundError(f"CSV not found after download attempt")
 
     df = pd.read_csv(csv_path)
 
@@ -59,7 +87,6 @@ def load_data():
         X, y, test_size=0.2,
         random_state=42, stratify=y)
 
-    # SINGLE return statement — removed the duplicate
     return X_test, y_test.values, X.columns.tolist()
 
 model, config  = load_model()

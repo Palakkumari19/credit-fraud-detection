@@ -31,12 +31,36 @@ def load_model():
 
 @st.cache_data
 def load_data():
-    X_test  = np.load('data/processed/X_test.npy')
-    y_test  = np.load('data/processed/y_test.npy')
-    feature_names = pd.read_csv(
-        'data/processed/feature_names.csv').iloc[:,0].tolist()
-    X_test_df = pd.DataFrame(X_test, columns=feature_names)
-    return X_test_df, y_test, feature_names
+    import os
+    from sklearn.preprocessing import RobustScaler
+    from sklearn.model_selection import train_test_split
+
+    csv_path = 'data/raw/creditcard.csv'
+
+    if not os.path.exists(csv_path):
+        os.makedirs('data/raw', exist_ok=True)
+        os.system('pip install kaggle -q')
+        os.environ['KAGGLE_USERNAME'] = st.secrets["KAGGLE_USERNAME"]
+        os.environ['KAGGLE_KEY']      = st.secrets["KAGGLE_KEY"]
+        os.system('kaggle datasets download -d mlg-ulb/creditcardfraud '
+                  '--unzip -p data/raw/')
+
+    df = pd.read_csv(csv_path)
+
+    scaler = RobustScaler()
+    df['Amount_scaled'] = scaler.fit_transform(df[['Amount']])
+    df['Time_scaled']   = scaler.fit_transform(df[['Time']])
+    df = df.drop(['Time', 'Amount'], axis=1)
+
+    X = df.drop('Class', axis=1)
+    y = df['Class']
+
+    _, X_test, _, y_test = train_test_split(
+        X, y, test_size=0.2,
+        random_state=42, stratify=y)
+
+    # SINGLE return statement — removed the duplicate
+    return X_test, y_test.values, X.columns.tolist()
 
 model, config  = load_model()
 threshold      = config['threshold']

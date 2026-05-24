@@ -11,3 +11,4 @@ mlruns/
 
 # Allow data folder but ignore raw csv
 data/
+*.npy
